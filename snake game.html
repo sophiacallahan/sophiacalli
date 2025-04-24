@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fun Snake Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #00bfae; /* Cool background color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        canvas {
+            border: 5px solid #333;
+            background-color: #f4f4f4;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-info {
+            position: absolute;
+            top: 10px;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .game-info p {
+            margin: 5px;
+        }
+
+        .game-over {
+            color: red;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div class="game-info">
+        <p>Use Arrow Keys to Play</p>
+        <p>Score: <span id="score">0</span></p>
+        <p id="gameOver" class="game-over" style="display: none;">Game Over! Click to Restart</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const box = 20; // size of the square (the snake's segment or food)
+        let score = 0;
+        let snake = [{x: 9 * box, y: 10 * box}]; // initial position of the snake
+        let food = {x: Math.floor(Math.random() * 19 + 1) * box, y: Math.floor(Math.random() * 19 + 1) * box}; // random position for the food
+        let obstacles = [];
+        let direction = "RIGHT"; // Start with a direction to avoid issues on restart
+        let gameOver = false;
+
+        // Sound Effects
+        const eatSound = new Audio('https://www.soundjay.com/button/beep-07.wav');
+        const gameOverSound = new Audio('https://www.soundjay.com/button/beep-08b.wav');
+
+        // Listen for arrow key presses
+        document.addEventListener("keydown", directionControl);
+
+        function directionControl(event) {
+            if (event.keyCode == 37 && direction != "RIGHT") {
+                direction = "LEFT";
+            } else if (event.keyCode == 38 && direction != "DOWN") {
+                direction = "UP";
+            } else if (event.keyCode == 39 && direction != "LEFT") {
+                direction = "RIGHT";
+            } else if (event.keyCode == 40 && direction != "UP") {
+                direction = "DOWN";
+            }
+        }
+
+        // Draw everything (snake, food, obstacles, etc.)
+        function draw() {
+            if (gameOver) return;
+
+            // Draw the background
+            ctx.fillStyle = "#f4f4f4";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the snake
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = i === 0 ? "green" : "black"; // head is green, body is black
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+            }
+
+            // Draw food
+            ctx.fillStyle = "red";
+            ctx.fillRect(food.x, food.y, box, box);
+
+            // Draw obstacles
+            ctx.fillStyle = "purple";
+            for (let i = 0; i < obstacles.length; i++) {
+                ctx.fillRect(obstacles[i].x, obstacles[i].y, box, box);
+            }
+
+            // Move the snake
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            if (direction == "LEFT") snakeX -= box;
+            if (direction == "UP") snakeY -= box;
+            if (direction == "RIGHT") snakeX += box;
+            if (direction == "DOWN") snakeY += box;
+
+            // Game Over if hitting walls
+            if (snakeX < 0 || snakeX >= canvas.width || snakeY < 0 || snakeY >= canvas.height || collision(snakeX, snakeY)) {
+                gameOver = true;
+                document.getElementById("gameOver").style.display = 'block';
+                gameOverSound.play();
+                return;
+            }
+
+            // Eat food
+            if (snakeX == food.x && snakeY == food.y) {
+                food = {x: Math.floor(Math.random() * 19 + 1) * box, y: Math.floor(Math.random() * 19 + 1) * box}; // new food position
+                score++;
+                document.getElementById("score").innerText = score;
+                eatSound.play();
+            } else {
+                snake.pop(); // remove the last segment of the snake
+            }
+
+            // Create new head of the snake
+            const newHead = {x: snakeX, y: snakeY};
+            snake.unshift(newHead); // add the new head to the front of the snake array
+
+            // Add a random obstacle every 5 points
+            if (score % 5 === 0 && score !== 0) {
+                obstacles.push({
+                    x: Math.floor(Math.random() * 19 + 1) * box,
+                    y: Math.floor(Math.random() * 19 + 1) * box
+                });
+            }
+
+            // Keep the game going
+            setTimeout(draw, 100);
+        }
+
+        // Check if snake hits itself
+        function collision(x, y) {
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x == x && snake[i].y == y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Restart the game
+        document.getElementById("gameOver").addEventListener("click", () => {
+            gameOver = false;
+            score = 0;
+            snake = [{x: 9 * box, y: 10 * box}];
+            food = {x: Math.floor(Math.random() * 19 + 1) * box, y: Math.floor(Math.random() * 19 + 1) * box};
+            obstacles = [];
+            direction = "RIGHT"; // Ensure direction is reset to "RIGHT" on restart
+            document.getElementById("score").innerText = score;
+            document.getElementById("gameOver").style.display = 'none';
+            draw();
+        });
+
+        // Start the game
+        draw();
+    </script>
+
